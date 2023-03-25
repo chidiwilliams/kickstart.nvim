@@ -92,9 +92,34 @@ require('lazy').setup({
   },
 
   {
+    "jose-elias-alvarez/null-ls.nvim",
+    dependencies = { "mason.nvim" },
+    opts = function()
+      local nls = require("null-ls")
+      return {
+        sources = {
+          nls.builtins.formatting.prettier,
+        },
+      }
+    end,
+  },
+
+  {
     -- Autocompletion
     'hrsh7th/nvim-cmp',
     dependencies = { 'hrsh7th/cmp-nvim-lsp', 'L3MON4D3/LuaSnip', 'saadparwaiz1/cmp_luasnip' },
+  },
+
+  -- Surround text.
+  {
+    "kylechui/nvim-surround",
+    version = "*", -- Use for stability; omit to use `main` branch for the latest features
+    event = "VeryLazy",
+    config = function()
+      require("nvim-surround").setup({
+        -- Configuration here, or leave empty to use defaults
+      })
+    end
   },
 
   -- Useful plugin to show you pending keybinds.
@@ -501,3 +526,27 @@ cmp.setup {
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
+--
+
+-- Set split layout
+vim.o.splitright = true
+vim.o.splitbelow = true
+vim.cmd('vsplit')
+vim.cmd('split')
+
+local main_window = vim.api.nvim_get_current_win()
+
+vim.cmd('wincmd l')
+vim.cmd('wincmd k')
+vim.cmd('term')
+
+vim.api.nvim_set_current_win(main_window)
+
+local is_git_repo = vim.fn.system("git rev-parse --is-inside-work-tree") == "true\n"
+if is_git_repo then
+  vim.cmd('wincmd l')
+  vim.cmd('wincmd j')
+  vim.cmd('Gedit :')
+
+  vim.api.nvim_set_current_win(main_window)
+end
