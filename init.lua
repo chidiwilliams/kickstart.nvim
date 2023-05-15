@@ -107,7 +107,15 @@ require('lazy').setup({
   {
     -- Autocompletion
     'hrsh7th/nvim-cmp',
-    dependencies = { 'hrsh7th/cmp-nvim-lsp', 'L3MON4D3/LuaSnip', 'saadparwaiz1/cmp_luasnip' },
+    dependencies = {
+      'hrsh7th/cmp-nvim-lsp',
+      'L3MON4D3/LuaSnip',
+      'saadparwaiz1/cmp_luasnip',
+      {
+        "dsznajder/vscode-es7-javascript-react-snippets",
+        build = "yarn install --frozen-lockfile && yarn compile",
+      },
+    },
   },
 
   -- Surround text.
@@ -261,6 +269,16 @@ vim.o.completeopt = 'menuone,noselect'
 -- NOTE: You should make sure your terminal supports this
 vim.o.termguicolors = true
 
+-- Highlight cursor lines
+vim.o.cursorline = true
+
+-- Add scroll margins
+vim.o.scrolloff = 5
+
+-- Set split direction
+vim.o.splitright = true
+vim.o.splitbelow = true
+
 -- [[ Basic Keymaps ]]
 
 -- Keymaps for better default experience
@@ -270,6 +288,12 @@ vim.keymap.set({ 'n', 'v' }, '<Space>', '<Nop>', { silent = true })
 -- Remap for dealing with word wrap
 vim.keymap.set('n', 'k', "v:count == 0 ? 'gk' : 'k'", { expr = true, silent = true })
 vim.keymap.set('n', 'j', "v:count == 0 ? 'gj' : 'j'", { expr = true, silent = true })
+
+-- Remap splits to CTRL + hjkl
+vim.keymap.set('n', '<C-h>', '<C-w>h', { noremap = true, silent = true })
+vim.keymap.set('n', '<C-j>', '<C-w>j', { noremap = true, silent = true })
+vim.keymap.set('n', '<C-k>', '<C-w>k', { noremap = true, silent = true })
+vim.keymap.set('n', '<C-l>', '<C-w>l', { noremap = true, silent = true })
 
 -- [[ Highlight on yank ]]
 -- See `:help vim.highlight.on_yank()`
@@ -309,8 +333,11 @@ vim.keymap.set('n', '<leader>/', function()
   })
 end, { desc = '[/] Fuzzily search in current buffer' })
 
-vim.keymap.set('n', '<leader>sf', require('telescope.builtin').find_files, { desc = '[S]earch [F]iles' })
-vim.keymap.set('n', '<leader>sh', require('telescope.builtin').help_tags, { desc = '[S]earch [H]elp' })
+vim.keymap.set('n', '<leader>sf', function()
+    require('telescope.builtin').find_files({ hidden = true })
+  end,
+  { desc = '[S]earch [F]iles' })
+vim.keymap.set('', '<leader>sh', require('telescope.builtin').help_tags, { desc = '[S]earch [H]elp' })
 vim.keymap.set('n', '<leader>sw', require('telescope.builtin').grep_string, { desc = '[S]earch current [W]ord' })
 vim.keymap.set('n', '<leader>sg', require('telescope.builtin').live_grep, { desc = '[S]earch by [G]rep' })
 vim.keymap.set('n', '<leader>sd', require('telescope.builtin').diagnostics, { desc = '[S]earch [D]iagnostics' })
@@ -416,7 +443,7 @@ local on_attach = function(_, bufnr)
 
   -- See `:help K` for why this keymap
   nmap('K', vim.lsp.buf.hover, 'Hover Documentation')
-  nmap('<C-k>', vim.lsp.buf.signature_help, 'Signature Documentation')
+  nmap('<leader>k', vim.lsp.buf.signature_help, 'Signature Documentation')
 
   -- Lesser used LSP functionality
   nmap('gD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
@@ -443,13 +470,13 @@ local servers = {
   -- pyright = {},
   -- rust_analyzer = {},
   -- tsserver = {},
-
   lua_ls = {
     Lua = {
       workspace = { checkThirdParty = false },
       telemetry = { enable = false },
     },
   },
+  tsserver = {}
 }
 
 -- Setup neovim lua configuration
@@ -479,11 +506,13 @@ mason_lspconfig.setup_handlers {
   end,
 }
 
+
 -- nvim-cmp setup
 local cmp = require 'cmp'
 local luasnip = require 'luasnip'
 
 luasnip.config.setup {}
+require("luasnip.loaders.from_vscode").lazy_load()
 
 cmp.setup {
   snippet = {
@@ -527,26 +556,3 @@ cmp.setup {
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
 --
-
--- Set split layout
-vim.o.splitright = true
-vim.o.splitbelow = true
-vim.cmd('vsplit')
-vim.cmd('split')
-
-local main_window = vim.api.nvim_get_current_win()
-
-vim.cmd('wincmd l')
-vim.cmd('wincmd k')
-vim.cmd('term')
-
-vim.api.nvim_set_current_win(main_window)
-
-local is_git_repo = vim.fn.system("git rev-parse --is-inside-work-tree") == "true\n"
-if is_git_repo then
-  vim.cmd('wincmd l')
-  vim.cmd('wincmd j')
-  vim.cmd('Gedit :')
-
-  vim.api.nvim_set_current_win(main_window)
-end
