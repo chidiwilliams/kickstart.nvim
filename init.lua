@@ -211,6 +211,24 @@ require('lazy').setup({
     end,
   },
 
+  {
+    'RRethy/vim-illuminate'
+  },
+
+  {
+    'github/copilot.vim'
+  },
+
+  {
+    "folke/todo-comments.nvim",
+    dependencies = { "nvim-lua/plenary.nvim" },
+    opts = {
+      -- your configuration comes here
+      -- or leave it empty to use the default settings
+      -- refer to the configuration section below
+    }
+  },
+
   -- NOTE: Next Step on Your Neovim Journey: Add/Configure additional "plugins" for kickstart
   --       These are some example plugins that I've included in the kickstart repository.
   --       Uncomment any of the lines below to enable them.
@@ -236,6 +254,7 @@ vim.o.hlsearch = true
 
 -- Make line numbers default
 vim.wo.number = true
+vim.wo.relativenumber = true
 
 -- Enable mouse mode
 vim.o.mouse = 'a'
@@ -297,6 +316,10 @@ vim.keymap.set('n', '<C-l>', '<C-w>l', { noremap = true, silent = true })
 
 -- Press Enter to remove search highlights
 vim.keymap.set('n', '<CR>', ':nohlsearch<CR>', { silent = true })
+
+-- Fast saving and exit
+vim.keymap.set('n', '<Leader>w', ':write!<CR>')
+vim.keymap.set('n', '<Leader>q', ':q!<CR>', { silent = true })
 
 -- [[ Highlight on yank ]]
 -- See `:help vim.highlight.on_yank()`
@@ -442,7 +465,7 @@ local on_attach = function(_, bufnr)
   nmap('gI', vim.lsp.buf.implementation, '[G]oto [I]mplementation')
   nmap('<leader>D', vim.lsp.buf.type_definition, 'Type [D]efinition')
   nmap('<leader>ds', require('telescope.builtin').lsp_document_symbols, '[D]ocument [S]ymbols')
-  nmap('<leader>ws', require('telescope.builtin').lsp_dynamic_workspace_symbols, '[W]orkspace [S]ymbols')
+  nmap('<leader>ss', require('telescope.builtin').lsp_dynamic_workspace_symbols, 'Workspace [S]ymbols')
 
   -- See `:help K` for why this keymap
   nmap('K', vim.lsp.buf.hover, 'Hover Documentation')
@@ -450,11 +473,6 @@ local on_attach = function(_, bufnr)
 
   -- Lesser used LSP functionality
   nmap('gD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
-  nmap('<leader>wa', vim.lsp.buf.add_workspace_folder, '[W]orkspace [A]dd Folder')
-  nmap('<leader>wr', vim.lsp.buf.remove_workspace_folder, '[W]orkspace [R]emove Folder')
-  nmap('<leader>wl', function()
-    print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
-  end, '[W]orkspace [L]ist Folders')
 
   -- Create a command `:Format` local to the LSP buffer
   vim.api.nvim_buf_create_user_command(bufnr, 'Format', function(_)
@@ -462,25 +480,14 @@ local on_attach = function(_, bufnr)
   end, { desc = 'Format current buffer with LSP' })
 end
 
--- Enable the following language servers
---  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
---
---  Add any additional override configuration in the following tables. They will be passed to
---  the `settings` field of the server config. You must look up that documentation yourself.
-local servers = {
-  -- clangd = {},
-  -- gopls = {},
-  -- pyright = {},
-  -- rust_analyzer = {},
-  -- tsserver = {},
-  lua_ls = {
-    Lua = {
-      workspace = { checkThirdParty = false },
-      telemetry = { enable = false },
-    },
-  },
-  tsserver = {}
-}
+local function organize_imports()
+  local params = {
+    command = "_typescript.organizeImports",
+    arguments = { vim.api.nvim_buf_get_name(0) },
+    title = ""
+  }
+  vim.lsp.buf.execute_command(params)
+end
 
 -- Setup neovim lua configuration
 require('neodev').setup()
@@ -496,19 +503,50 @@ require('mason').setup()
 local mason_lspconfig = require 'mason-lspconfig'
 
 mason_lspconfig.setup {
-  ensure_installed = vim.tbl_keys(servers),
+  ensure_installed = { "lua_ls", "tsserver", "emmet_ls" },
 }
 
 mason_lspconfig.setup_handlers {
   function(server_name)
-    require('lspconfig')[server_name].setup {
+    require("lspconfig")[server_name].setup {
       capabilities = capabilities,
       on_attach = on_attach,
-      settings = servers[server_name],
     }
   end,
+  ["lua_ls"] = function()
+    require("lspconfig").lua_ls.setup {
+      settings = {
+        Lua = {
+          workspace = { checkThirdParty = false },
+          telemetry = { enable = false },
+        },
+      }
+    }
+  end,
+  ["tsserver"] = function()
+    require("lspconfig").tsserver.setup {
+      commands = {
+        OrganizeImports = {
+          organize_imports,
+          description = "Organize Imports"
+        }
+      }
+    }
+  end,
+  ["emmet_ls"] = function()
+    require("lspconfig").emmet_ls.setup {
+      filetypes = { "css", "eruby", "html", "javascript", "javascriptreact", "less", "sass", "scss", "svelte", "pug",
+        "typescriptreact", "vue" },
+      init_options = {
+        html = {
+          options = {
+            ["bem.enabled"] = true,
+          },
+        },
+      }
+    }
+  end
 }
-
 
 -- nvim-cmp setup
 local cmp = require 'cmp'
